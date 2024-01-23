@@ -1,0 +1,7 @@
+.row {
+	color: blue;
+}
+
+window[data-green-instead] .row {
+	color: green;
+}

@@ -1,0 +1,7 @@
+.row {
+	color: deeppink;
+}
+
+window[data-green-instead] .row {
+	color: forestgreen;
+}
