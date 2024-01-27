@@ -5,14 +5,20 @@ function log(msg) {
 }
 
 function install() {
-	log("Installed");
+	log("Installed 2.0");
 }
 
 async function startup({ id, version, rootURI }) {
-	log("Starting");
+	log("Starting 2.0");
+	//Sleep for 20 seconds
+	//await new Promise(r => setTimeout(r, 20000));
+	Zotero.PreferencePanes.register({
+		pluginID: 'make-it-red@example.com',
+		src: rootURI + 'preferences.xhtml',
+		scripts: [rootURI + 'preferences.js']
+	});
 	
-	// Load chrome/content file directly via file:/// URL
-	Services.scriptloader.loadSubScript(rootURI + 'chrome/content/make-it-red.js');
+	Services.scriptloader.loadSubScript(rootURI + 'make-it-red.js');
 	MakeItRed.init({ id, version, rootURI });
 	MakeItRed.addToAllWindows();
 	await MakeItRed.main();
@@ -27,11 +33,11 @@ function onMainWindowUnload({ window }) {
 }
 
 function shutdown() {
-	log("Shutting down");
+	log("Shutting down 2.0");
 	MakeItRed.removeFromAllWindows();
 	MakeItRed = undefined;
 }
 
 function uninstall() {
-	log("Uninstalled");
+	log("Uninstalled 2.0");
 }
