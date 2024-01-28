@@ -1,1 +1,1 @@
-pref("extensions.make-it-red.iCloudPath", "");
+pref("extensions.icloud-attacher.iCloudPath", "");

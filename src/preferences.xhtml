@@ -1,0 +1,13 @@
+<vbox onload="ICloudAttacher_Preferences.init()">
+    <groupbox>
+        <label><html:h2>Input Path to iCloud Folder:</html:h2></label>
+        <hbox align="center">
+            <label value="iCloud Path:"/>
+            <html:input type="text" id="iCloudPath"
+                        preference="extensions.icloud-attacher.iCloudPath"
+                        flex="1"/>
+            <button id="iCloudPathBrowseButton"
+                    label="Browse Paths"
+                    oncommand="ICloudAttacher_Preferences.iCloud_Directory.choosePath()"/>
+        </hbox>    </groupbox>
+</vbox>
