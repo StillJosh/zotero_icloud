@@ -1,7 +1,7 @@
-var MakeItRed;
+var ICloudAttacher;
 
 function log(msg) {
-	Zotero.debug("Make It Red: " + msg);
+	Zotero.debug("ICloud Attacher: " + msg);
 }
 
 function install() {
@@ -13,29 +13,29 @@ async function startup({ id, version, rootURI }) {
 	//Sleep for 20 seconds
 	//await new Promise(r => setTimeout(r, 20000));
 	Zotero.PreferencePanes.register({
-		pluginID: 'make-it-red@example.com',
+		pluginID: 'icloud-attacher@example.com',
 		src: rootURI + 'preferences.xhtml',
 		scripts: [rootURI + 'preferences.js']
 	});
-	
-	Services.scriptloader.loadSubScript(rootURI + 'make-it-red.js');
-	MakeItRed.init({ id, version, rootURI });
-	MakeItRed.addToAllWindows();
-	await MakeItRed.main();
+
+	Services.scriptloader.loadSubScript(rootURI + 'icloud-attacher.js');
+	ICloudAttacher.init({ id, version, rootURI });
+	ICloudAttacher.addToAllWindows();
+	await ICloudAttacher.main();
 }
 
 function onMainWindowLoad({ window }) {
-	MakeItRed.addToWindow(window);
+	ICloudAttacher.addToWindow(window);
 }
 
 function onMainWindowUnload({ window }) {
-	MakeItRed.removeFromWindow(window);
+	ICloudAttacher.removeFromWindow(window);
 }
 
 function shutdown() {
 	log("Shutting down 2.0");
-	MakeItRed.removeFromAllWindows();
-	MakeItRed = undefined;
+	ICloudAttacher.removeFromAllWindows();
+	ICloudAttacher = undefined;
 }
 
 function uninstall() {
