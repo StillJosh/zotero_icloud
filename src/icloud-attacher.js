@@ -77,6 +77,16 @@ ICloudAttacher = {
 							// Delete the original file
 							item.eraseTx();
 					});
+				Zotero.debug("Tag File: ");
+
+				// Add 'Unread' tag to the item
+				parentItem.setTags( [{tag: 'unread', type: 1}]);
+				Zotero.debug(" File tagged: " + this.rootURI + 'attacher_utils.js');
+
+				Services.scriptloader.loadSubScript('placeholder');
+				Zotero.debug("subscript loaded: ");
+
+				Zotero.icloudAttacher.writeTags(targetFile, ['unread']);
 				});
 			}
 
