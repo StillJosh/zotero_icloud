@@ -12,12 +12,12 @@ ICloudAttacher = {
 		this.rootURI = rootURI;
 		this.initialized = true;
 
-		let notifierID = Zotero.Notifier.registerObserver(this.newItemCallback, ['item']);
+		let newItemNotifierID = Zotero.Notifier.registerObserver(this.newItemCallback, ['item']);
 
 		// Unregister callback when the window closes (important to avoid a memory leak)
-		window.addEventListener('unload', function(e) {
-			Zotero.Notifier.unregisterObserver(notifierID);
-		}, false);
+		//window.addEventListener('unload', function(e) {
+		//	Zotero.Notifier.unregisterObserver(newItemNotifierID);
+		//}, false);
 	},
 
 	newItemCallback: {
@@ -91,17 +91,73 @@ ICloudAttacher = {
 			}
 
 	},
+
+	updateTagsFromICloud: function() {
+		const pane = Zotero.getActiveZoteroPane();
+
+		var items = pane.getSortedItems();
+		for (item in items){
+			attachments = items[item].getAttachments();
+			for (a in attachments){
+				attachment = Zotero.Items.get(attachments[a]);
+				if (attachment.attachmentContentType === 'application/pdf'){
+					Zotero.debug(attachment.attachmentPath)
+				}
+			}
+		}
+	},
+
+	updateTagsFromZotero: function() {
+		Zotero.debug("Updating tags from Zotero");
+	},
 	
 	log(msg) {
 		Zotero.debug("ICloud Attacher: " + msg);
 	},
 
+	addToWindow(window) {
+		let doc = window.document;
+		Zotero.debug("ADd to window: ");
+
+		// Add menu option
+		let menuitemfromicloud = doc.createXULElement('menuitem');
+		menuitemfromicloud.id = 'updateTagsFromICloud';
+		menuitemfromicloud.setAttribute('type', 'checkbox');
+		menuitemfromicloud.setAttribute('data-l10n-id', 'update-Tags-From-iCloud');
+		// MozMenuItem#checked is available in Zotero 7
+		menuitemfromicloud.addEventListener('command', () => {
+			ICloudAttacher.updateTagsFromICloud();
+		});
+		doc.getElementById('menu_viewPopup').appendChild(menuitemfromicloud);
+		this.storeAddedElement(menuitemfromicloud);
+
+		let menuitemfromZotero = doc.createXULElement('menuitem');
+		menuitemfromZotero.id = 'updateTagsFromZotero';
+		menuitemfromZotero.setAttribute('type', 'checkbox');
+		menuitemfromZotero.setAttribute('data-l10n-id', 'update-Tags-From-Zotero');
+		// MozMenuItem#checked is available in Zotero 7
+		menuitemfromZotero.addEventListener('command', () => {
+			ICloudAttacher.updateTagsFromZotero();
+		});
+		doc.getElementById('menu_viewPopup').appendChild(menuitemfromZotero);
+		this.storeAddedElement(menuitemfromZotero);
+	},
+
 	addToAllWindows() {
+		Zotero.debug("ADd to all window: ");
+
 		var windows = Zotero.getMainWindows();
 		for (let win of windows) {
 			if (!win.ZoteroPane) continue;
 			this.addToWindow(win);
 		}
+	},
+
+	storeAddedElement(elem) {
+		if (!elem.id) {
+			throw new Error("Element must have an id");
+		}
+		this.addedElementIDs.push(elem.id);
 	},
 	
 	removeFromWindow(window) {
