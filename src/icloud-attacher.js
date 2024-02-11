@@ -39,13 +39,18 @@ ICloudAttacher = {
 
 				// Copy the file to the iCloud folder
 				const iCloudPath = Zotero.Prefs.get('extensions.icloud-attacher.iCloudPath', true);
-				const targetFile = OS.Path.join(iCloudPath, item.attachmentFilename);
+
+				// Get correct collection path
+				const parentItem = Zotero.Items.get(item.parentID);
+				const collections = parentItem.getCollections();
+				const collectionNames = collections.map(id => Zotero.Collections.get(id).name);
+				Zotero.debug("Collection Names: " + collectionNames);
+				const targetFile = OS.Path.join(iCloudPath, ...collectionNames, item.attachmentFilename);
 
 				OS.File.copy(item.getFilePath(), targetFile, {noOverwrite: true})
 					.then(() => {
 						// Link the file to the item
 						Zotero.debug("The file has been copied to iCloud folder.");
-						const parentItem = Zotero.Items.get(item.parentID);
 						Zotero.debug("Target File: "  + targetFile);
 
 						Zotero.Attachments.linkFromFile({
