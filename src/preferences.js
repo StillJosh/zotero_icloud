@@ -53,4 +53,9 @@ ICloudAttacher_Preferences.iCloud_Directory = {
 
     },
 
+    addUnreadTag: function (item) {
+        Zotero.Prefs.set('extensions.icloud-attacher.addUnreadTag', true, true);
+
+    }
+
 };

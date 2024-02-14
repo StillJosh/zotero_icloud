@@ -146,6 +146,15 @@ ICloudAttacher = {
 			this.removeFromWindow(win);
 		}
 	},
+
+                // If set in preferences, add 'Unread' tag to the item in Zotero and iCloud
+                if (Zotero.Prefs.get('extensions.icloud-attacher.addUnreadTag', true)) {
+                    Zotero.debug("Tag File: ");
+                    // Add 'Unread' tag to the item
+                    parentItem.setTags([{tag: 'unread', type: 1}]);
+                    //Todo: Make this folder path relative
+                    Zotero.icloudAttacher.writeTags(targetFile, ['unread']);
+                }
     /**
      * This function updates the tags of PDF attachments in iCloud according to the Zotero Tags.
      * It retrieves the active Zotero pane and the iCloud path from the preferences.

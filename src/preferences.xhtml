@@ -9,5 +9,14 @@
             <button id="iCloudPathBrowseButton"
                     label="Browse Paths"
                     oncommand="ICloudAttacher_Preferences.iCloud_Directory.choosePath()"/>
-        </hbox>    </groupbox>
+        </hbox>
+    </groupbox>
+    <groupbox>
+        <label><html:h2>Add Tag to new Items:</html:h2></label>
+        <checkbox label="Add 'unread' tag to new Items:"
+                  preference="extensions.icloud-attacher.addUnreadTag"
+                  oncommand="iCloudAttacher_Preferences.addUnreadTag"
+                  native="true"
+        />
+    </groupbox>
 </vbox>
