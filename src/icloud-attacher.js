@@ -1,151 +1,62 @@
 ICloudAttacher = {
-	id: null,
-	version: null,
-	rootURI: null,
-	initialized: false,
-	addedElementIDs: [],
-	
-	init({ id, version, rootURI }) {
-		if (this.initialized) return;
-		this.id = id;
-		this.version = version;
-		this.rootURI = rootURI;
-		this.initialized = true;
+    id: null,
+    version: null,
+    rootURI: null,
+    initialized: false,
+    addedElementIDs: [],
 
-		let newItemNotifierID = Zotero.Notifier.registerObserver(this.newItemCallback, ['item']);
+    init({id, version, rootURI}) {
+        if (this.initialized) return;
+        this.id = id;
+        this.version = version;
+        this.rootURI = rootURI;
+        this.initialized = true;
 
-		// Unregister callback when the window closes (important to avoid a memory leak)
-		//window.addEventListener('unload', function(e) {
-		//	Zotero.Notifier.unregisterObserver(newItemNotifierID);
-		//}, false);
-	},
+        let newItemNotifierID = Zotero.Notifier.registerObserver(this.newItemCallback, ['item']);
 
-	newItemCallback: {
-		notify: function(event, type, ids) {
+        Services.scriptloader.loadSubScript('file:///Users/joshuastiller/Code/private/zotero_plugin/src/attacher_utils.js');
+        Components.utils.import("resource://gre/modules/osfile.jsm");
 
-			// Import the OS.File module
-			Components.utils.import("resource://gre/modules/osfile.jsm");
-			Zotero.debug("Item added: " + event + ' ' + type + ' ' + ids);
+    },
 
-			// Only act on item additions
-			if (event !== 'add' || type !== 'item') return;
+    /**
+     * This function is triggered when a new item is added in Zotero.
+     * It checks if the added item is a PDF attachment that is not linked.
+     * If it is, it copies the file to the iCloud folder, retrieves the correct collection path,
+     * and constructs the target file path.
+     * It then attempts to copy the file to the target path.
+     * If the copy is successful, it links the file to the item and deletes the original file.
+     * If the file already exists at the target path, it links the existing file to the item and deletes the original file.
+     * Finally, it adds an 'Unread' tag to the item and writes this tag to the iCloud file.
+     */
+    newItemCallback: {
+        notify: function (event, type, ids) {
 
-			Zotero.Items.get(ids).forEach(item => {
-				Zotero.debug("Item Invest: " + item.itemType + ' ' + item.attachmentContentType + ' ' + item.attachmentLinkMode);
+            // Import the OS.File module
+            Zotero.debug("Item added: " + event + ' ' + type + ' ' + ids);
 
-				// Only act on PDF attachments which are not linked
-				if (item.itemType !== 'attachment' || item.attachmentContentType !== 'application/pdf' || item.attachmentLinkMode !== 1) return;
-				Zotero.debug("Item checked: " + item);
+            // Only act on item additions
+            if (event !== 'add' || type !== 'item') return;
 
-				// Copy the file to the iCloud folder
-				const iCloudPath = Zotero.Prefs.get('extensions.icloud-attacher.iCloudPath', true);
+            Zotero.Items.get(ids).forEach(item => {
+                Zotero.debug("Item Invest: " + item.itemType + ' ' + item.attachmentContentType + ' ' + item.attachmentLinkMode);
 
-				// Get correct collection path
-				const parentItem = Zotero.Items.get(item.parentID);
-				const collections = parentItem.getCollections();
-				const collectionNames = collections.map(id => Zotero.Collections.get(id).name);
-				Zotero.debug("Collection Names: " + collectionNames);
-				const targetFile = OS.Path.join(iCloudPath, ...collectionNames, item.attachmentFilename);
+                // Only act on PDF attachments which are not linked
+                if (item.itemType !== 'attachment' || item.attachmentContentType !== 'application/pdf' || item.attachmentLinkMode !== 1) return;
+                Zotero.debug("Item checked: " + item);
 
-				Zotero.debug("Tag File: ");
+                // Copy the file to the iCloud folder
+                const iCloudPath = Zotero.Prefs.get('extensions.icloud-attacher.iCloudPath', true);
 
-				// Add 'Unread' tag to the item
-				parentItem.setTags( [{tag: 'unread', type: 1}]);
-				Zotero.debug(" File tagged: " + this.rootURI + 'attacher_utils.js');
+                // Get correct collection path
+                const parentItem = Zotero.Items.get(item.parentID);
+                const collections = parentItem.getCollections();
+                const collectionNames = collections.map(id => Zotero.Collections.get(id).name);
+                Zotero.debug("Collection Names: " + collectionNames);
+                const targetFile = OS.Path.join(iCloudPath, ...collectionNames, item.attachmentFilename);
 
-				Services.scriptloader.loadSubScript('placeholder');
-				Zotero.debug("subscript loaded: ");
-
-				Zotero.icloudAttacher.writeTags(targetFile, ['unread']);
-				});
-			}
-
-	},
-
-	updateTagsFromICloud: function() {
-		const pane = Zotero.getActiveZoteroPane();
-
-		var items = pane.getSortedItems();
-		for (item in items){
-			attachments = items[item].getAttachments();
-			for (a in attachments){
-				attachment = Zotero.Items.get(attachments[a]);
-				if (attachment.attachmentContentType === 'application/pdf'){
-					Zotero.debug(attachment.attachmentPath)
-				}
-			}
-		}
-	},
-
-	updateTagsFromZotero: function() {
-		Zotero.debug("Updating tags from Zotero");
-	},
-	
-	log(msg) {
-		Zotero.debug("ICloud Attacher: " + msg);
-	},
-
-	addToWindow(window) {
-		let doc = window.document;
-		Zotero.debug("ADd to window: ");
-
-		// Add menu option
-		let menuitemfromicloud = doc.createXULElement('menuitem');
-		menuitemfromicloud.id = 'updateTagsFromICloud';
-		menuitemfromicloud.setAttribute('type', 'checkbox');
-		menuitemfromicloud.setAttribute('data-l10n-id', 'update-Tags-From-iCloud');
-		// MozMenuItem#checked is available in Zotero 7
-		menuitemfromicloud.addEventListener('command', () => {
-			ICloudAttacher.updateTagsFromICloud();
-		});
-		doc.getElementById('menu_viewPopup').appendChild(menuitemfromicloud);
-		this.storeAddedElement(menuitemfromicloud);
-
-		let menuitemfromZotero = doc.createXULElement('menuitem');
-		menuitemfromZotero.id = 'updateTagsFromZotero';
-		menuitemfromZotero.setAttribute('type', 'checkbox');
-		menuitemfromZotero.setAttribute('data-l10n-id', 'update-Tags-From-Zotero');
-		// MozMenuItem#checked is available in Zotero 7
-		menuitemfromZotero.addEventListener('command', () => {
-			ICloudAttacher.updateTagsFromZotero();
-		});
-		doc.getElementById('menu_viewPopup').appendChild(menuitemfromZotero);
-		this.storeAddedElement(menuitemfromZotero);
-	},
-
-	addToAllWindows() {
-		Zotero.debug("ADd to all window: ");
-
-		var windows = Zotero.getMainWindows();
-		for (let win of windows) {
-			if (!win.ZoteroPane) continue;
-			this.addToWindow(win);
-		}
-	},
-
-	storeAddedElement(elem) {
-		if (!elem.id) {
-			throw new Error("Element must have an id");
-		}
-		this.addedElementIDs.push(elem.id);
-	},
-	
-	removeFromWindow(window) {
-		var doc = window.document;
-		// Remove all elements added to DOM
-		for (let id of this.addedElementIDs) {
-			doc.getElementById(id)?.remove();
-		}
-		doc.querySelector('[href="icloud-attacher.ftl"]').remove();
-	},
-	
-	removeFromAllWindows() {
-		var windows = Zotero.getMainWindows();
-		for (let win of windows) {
-			if (!win.ZoteroPane) continue;
-			this.removeFromWindow(win);
-		}
-	},
+                // Copy the file to the target path
+                Zotero.icloudAttacher.copyFileToICloud(item, targetFile, parentItem);
 
                 // If set in preferences, add 'Unread' tag to the item in Zotero and iCloud
                 if (Zotero.Prefs.get('extensions.icloud-attacher.addUnreadTag', true)) {
@@ -155,6 +66,12 @@ ICloudAttacher = {
                     //Todo: Make this folder path relative
                     Zotero.icloudAttacher.writeTags(targetFile, ['unread']);
                 }
+
+            });
+        }
+
+    },
+
     /**
      * This function updates the tags of PDF attachments in iCloud according to the Zotero Tags.
      * It retrieves the active Zotero pane and the iCloud path from the preferences.
@@ -189,6 +106,16 @@ ICloudAttacher = {
             }
         }
     },
+
+    log(msg) {
+        Zotero.debug("ICloud Attacher: " + msg);
+    },
+
+    /**
+     * This function adds a menu item to the view menu, which allows the user to update the tags of PDF attachments
+     * in iCloud according to the Zotero tags.
+     */
+    addToWindow(window) {
         let doc = window.document;
 
         // Use Fluent for localization
@@ -206,4 +133,50 @@ ICloudAttacher = {
         doc.getElementById('menu_viewPopup').appendChild(menuitemfromZotero);
         this.storeAddedElement(menuitemfromZotero);
 
+    },
+
+    addToAllWindows() {
+        Zotero.debug("ADd to all window: ");
+
+        var windows = Zotero.getMainWindows();
+        for (let win of windows) {
+            if (!win.ZoteroPane) continue;
+            this.addToWindow(win);
+        }
+    },
+
+    storeAddedElement(elem) {
+        if (!elem.id) {
+            throw new Error("Element must have an id");
+        }
+        this.addedElementIDs.push(elem.id);
+    },
+
+    removeFromWindow(window) {
+        var doc = window.document;
+        // Remove all elements added to DOM
+        for (let id of this.addedElementIDs) {
+            doc.getElementById(id)?.remove();
+        }
+        doc.querySelector('[href="icloud-attacher.ftl"]').remove();
+    },
+
+    removeFromAllWindows() {
+        var windows = Zotero.getMainWindows();
+        for (let win of windows) {
+            if (!win.ZoteroPane) continue;
+            this.removeFromWindow(win);
+        }
+    },
+
+    async main() {
+        // Global properties are included automatically in Zotero 7
+        var host = new URL('https://foo.com/path').host;
+        this.log(`Host is ${host}`);
+
+        // Retrieve a global pref
+        this.log(`Intensity is ${Zotero.Prefs.get('extensions.make-it-red.intensity', true)}`);
+    }
+
 };
+
