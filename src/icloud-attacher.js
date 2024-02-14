@@ -14,7 +14,7 @@ ICloudAttacher = {
 
         let newItemNotifierID = Zotero.Notifier.registerObserver(this.newItemCallback, ['item']);
 
-        Services.scriptloader.loadSubScript('file:///Users/joshuastiller/Code/private/zotero_plugin/src/attacher_utils.js');
+        Services.scriptloader.loadSubScript(this.rootURI + 'attacher_utils.js');
         Components.utils.import("resource://gre/modules/osfile.jsm");
 
     },
