@@ -47,36 +47,6 @@ ICloudAttacher = {
 				Zotero.debug("Collection Names: " + collectionNames);
 				const targetFile = OS.Path.join(iCloudPath, ...collectionNames, item.attachmentFilename);
 
-				OS.File.copy(item.getFilePath(), targetFile, {noOverwrite: true})
-					.then(() => {
-						// Link the file to the item
-						Zotero.debug("The file has been copied to iCloud folder.");
-						Zotero.debug("Target File: "  + targetFile);
-
-						Zotero.Attachments.linkFromFile({
-							file: targetFile,
-							libraryID: parentItem.libraryID,
-							parentItemID: parentItem.getID(),
-						});
-
-						// Delete the original file
-						item.eraseTx();
-					})
-					.catch(error => {
-							// If the file already exists, link it to the item
-							Zotero.debug("File already exists.");
-							Zotero.debug("Target File: "  + targetFile);
-
-						const parentItem = Zotero.Items.get(item.parentID);
-							Zotero.Attachments.linkFromFile({
-								file: targetFile,
-								libraryID: parentItem.libraryID,
-								parentItemID: parentItem.id,
-							});
-
-							// Delete the original file
-							item.eraseTx();
-					});
 				Zotero.debug("Tag File: ");
 
 				// Add 'Unread' tag to the item
