@@ -49,7 +49,9 @@ Zotero.icloudAttacher = new function() {
     this.writeTags = function(filename, tags) {
         const tag_dict = {
             "unread": "Unread",
-            "blue": "blau",
+            "⭐️": "Orange",
+            "⭐️⭐️": "Gelb",
+            "⭐️⭐️⭐️": "Lila",
         }
 
         tags = tags.map(tag => tag_dict[tag]);
