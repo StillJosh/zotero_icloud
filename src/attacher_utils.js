@@ -1,7 +1,7 @@
 Zotero.icloudAttacher = new function() {
 
     this.copyFileToICloud = function(item, targetFile, parentItem) {
-        OS.File.copy(item.getFilePath(), targetFile, {noOverwrite: true})
+        IOUtils.copy(item.getFilePath(), targetFile, {noOverwrite: true})
             .then(() => {
                 // Link the file to the item
                 Zotero.debug("The file has been copied to iCloud folder.");

@@ -6,6 +6,7 @@ ICloudAttacher = {
     addedElementIDs: [],
 
     init({id, version, rootURI}) {
+
         if (this.initialized) return;
         this.id = id;
         this.version = version;
@@ -15,7 +16,6 @@ ICloudAttacher = {
         let newItemNotifierID = Zotero.Notifier.registerObserver(this.newItemCallback, ['item']);
 
         Services.scriptloader.loadSubScript(this.rootURI + 'attacher_utils.js');
-        Components.utils.import("resource://gre/modules/osfile.jsm");
 
     },
 
@@ -29,6 +29,9 @@ ICloudAttacher = {
      * If the file already exists at the target path, it links the existing file to the item and deletes the original file.
      * Finally, it adds an 'Unread' tag to the item and writes this tag to the iCloud file.
      */
+    customPathJoin: function(...paths) {
+        return paths.join('/');
+    },
     newItemCallback: {
         notify: function (event, type, ids) {
 
@@ -97,7 +100,7 @@ ICloudAttacher = {
 
                 // If the attachment is a linked PDF, get its full path and write the tags to the file
                 if (attachment.attachmentContentType === 'application/pdf') {
-                    var it = OS.Path.join(iCloudPath,
+                    var it = this.customPathJoin(iCloudPath,
                                             attachment.attachmentPath.replace(/^.*attachments:PaperLibrary\//, ''));
                     var tags = items[item].getTags();
                     tags = Object.values(tags).map(item => item.tag);
