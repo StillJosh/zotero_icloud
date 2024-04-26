@@ -53,10 +53,17 @@ ICloudAttacher = {
 
                 // Get correct collection path
                 const parentItem = Zotero.Items.get(item.parentID);
-                const collections = parentItem.getCollections();
-                const collectionNames = collections.map(id => Zotero.Collections.get(id).name);
-                Zotero.debug("Collection Names: " + collectionNames);
-                const targetFile = OS.Path.join(iCloudPath, ...collectionNames, item.attachmentFilename);
+                const collectionID = parentItem.getCollections()[0];
+
+                let coll = Zotero.Collections.get(collectionID)
+                let collNames = [coll.name]
+                while (coll._parentID !== false){
+                    coll = Zotero.Collections.get(coll._parentID);
+                    collNames.unshift(coll.name);
+                }
+
+                Zotero.debug("Collection Names: " + collNames);
+                const targetFile = ICloudAttacher.customPathJoin(iCloudPath, ...collNames, item.attachmentFilename);
 
                 // Copy the file to the target path
                 Zotero.icloudAttacher.copyFileToICloud(item, targetFile, parentItem);
