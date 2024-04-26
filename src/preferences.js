@@ -1,5 +1,3 @@
-var FilePicker = require('zotero/filePicker').default;
-
 var ICloudAttacher_Preferences = {
     init: function() {
         // Your initialization code goes here
