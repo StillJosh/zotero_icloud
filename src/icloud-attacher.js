@@ -17,6 +17,9 @@ ICloudAttacher = {
 
         Services.scriptloader.loadSubScript(this.rootURI + 'attacher_utils.js');
 
+        // Register observer for modifications (including tag changes)
+        let modifyNotifierID = Zotero.Notifier.registerObserver(this.tagChangeCallback, ['item']);
+
     },
 
     /**
@@ -35,7 +38,6 @@ ICloudAttacher = {
     newItemCallback: {
         notify: function (event, type, ids) {
 
-            // Import the OS.File module
             Zotero.debug("Item added: " + event + ' ' + type + ' ' + ids);
 
             // Only act on item additions
@@ -72,9 +74,9 @@ ICloudAttacher = {
                 if (Zotero.Prefs.get('extensions.icloud-attacher.addUnreadTag', true)) {
                     Zotero.debug("Tag File: ");
                     // Add 'Unread' tag to the item
-                    parentItem.setTags([{tag: 'unread', type: 1}]);
+                    parentItem.setTags([{tag: 'Unread', type: 1}]);
                     //Todo: Make this folder path relative
-                    Zotero.icloudAttacher.writeTags(targetFile, ['unread']);
+                    Zotero.icloudAttacher.writeTags(targetFile, ['Unread']);
                 }
 
             });
@@ -82,39 +84,115 @@ ICloudAttacher = {
 
     },
 
-    /**
-     * This function updates the tags of PDF attachments in iCloud according to the Zotero Tags.
-     * It retrieves the active Zotero pane and the iCloud path from the preferences.
-     * It then iterates over all items in the pane, and for each item, it gets its attachments.
-     * For each attachment, if it is a PDF, it constructs the iCloud path for the attachment,
-     * retrieves the tags of the item, and writes these tags to the iCloud file.
-     */
-    updateTagsFromZotero: function () {
-        Zotero.debug("Updating tags from Zotero");
+    tagChangeCallback: {
+        async notify(event, type, ids) {
+            // We are only interested in modifications to items
+            if (event !== 'modify' || type !== 'item') return;
 
-        // Get all items in the active Zotero pane (i.e. the currently open library and collection)
-        const pane = Zotero.getActiveZoteroPane();
-        let items = pane.getSortedItems();
+            for (let id of ids) {
+                let item = Zotero.Items.get(id);
+                // Skip if it's not a regular (parent) item. We only want tags on the parent, not attachments.
+                if (!item.isRegularItem() || item.isAttachment()) continue;
 
-        const iCloudPath = Zotero.Prefs.get('extensions.icloud-attacher.iCloudPath', true);
-        // Iterate over all items in the pane
-        for (let item in items) {
+                // Retrieve current tags on the parent item
+                let tags = await item.getTags();
+                tags = tags.map(t => t.tag);
 
-            // Get all attachments of the item and iterate over them
-            let attachments = items[item].getAttachments();
-            for (let a in attachments) {
-                let attachment = Zotero.Items.get(attachments[a]);
+                // Find the iCloud path from preferences
+                const iCloudPath = Zotero.Prefs.get('extensions.icloud-attacher.iCloudPath', true);
 
-                // If the attachment is a linked PDF, get its full path and write the tags to the file
-                if (attachment.attachmentContentType === 'application/pdf') {
-                    var it = this.customPathJoin(iCloudPath,
-                                            attachment.attachmentPath.replace(/^.*attachments:PaperLibrary\//, ''));
-                    var tags = items[item].getTags();
-                    tags = Object.values(tags).map(item => item.tag);
-                    Zotero.icloudAttacher.writeTags(it, tags);
+                // For each PDF attachment, update the Finder tags on iCloud
+                let attachments = item.getAttachments();
+                for (let attID of attachments) {
+                    let attachment = Zotero.Items.get(attID);
+                    if (attachment && attachment.attachmentContentType === 'application/pdf') {
+                        // Construct the target file path (adjust as needed for your directory structure)
+                        let targetFile = ICloudAttacher.customPathJoin(
+                            iCloudPath,
+                            attachment.attachmentPath.replace(/^.*attachments:PaperLibrary\//, '')
+                        );
+                        Zotero.debug("Updating tags for iCloud file: " + targetFile);
+                        Zotero.icloudAttacher.writeTags(targetFile, tags);
+                    }
                 }
             }
         }
+    },
+
+    async readAllTagsFromICloud() {
+
+        Zotero.Items.getAll(1).then(items => {
+            for (let item of items){
+                if (item.itemType != 'attachment'){
+                    continue;
+                }
+                if (item.attachmentContentType != 'application/pdf'){
+                    continue;
+                }
+                let filePath = item.getFilePath();
+
+                IOUtils.exists(filePath).then(exists => {
+                    if (!exists) {
+                        return;
+                    } else {
+
+                        Zotero.debug("Reading iCloud tags from: " + filePath);
+                        Zotero.icloudAttacher.readTags(filePath).then(icloudTags => {
+                            Zotero.debug("iCloud tags retrieved: " + JSON.stringify(icloudTags));
+
+                            let parentItem = Zotero.Items.get(item.parentID);
+
+                            parentItem.setTags(icloudTags);
+                            parentItem.saveTx();
+
+                            Zotero.debug("Zotero tags updated from iCloud tags for item " + itemID + ".");
+
+                        });
+                    }
+                });
+            }
+        });
+
+        Zotero.debug("Done applying tags to all items.");
+    },
+
+    async updateZoteroTagsFromICloudForItem1178() {
+        Zotero.debug("Updating Zotero tags from iCloud tags for item 1178.");
+        const itemID = 1178;
+        let item = Zotero.Items.get(itemID);
+        if (!item) {
+            Zotero.debug("No item found with ID " + itemID);
+            return;
+        }
+
+        const iCloudPath = Zotero.Prefs.get('extensions.icloud-attacher.iCloudPath', true);
+
+        let attachments = item.getAttachments();
+        if (!attachments.length) {
+            Zotero.debug("No attachments found for item " + itemID);
+            return;
+        }
+
+        let attachment = Zotero.Items.get(attachments[0]);
+        if (!attachment || attachment.attachmentContentType !== 'application/pdf') {
+            Zotero.debug("No PDF attachment found for item " + itemID);
+            return;
+        }
+
+        let targetFile = ICloudAttacher.customPathJoin(
+            iCloudPath,
+            attachment.attachmentPath.replace(/^.*attachments:PaperLibrary\//, '')
+        );
+
+        Zotero.debug("Reading iCloud tags from: " + targetFile);
+        let icloudTags = await Zotero.icloudAttacher.readTags(targetFile);
+
+        Zotero.debug("iCloud tags retrieved: " + JSON.stringify(icloudTags));
+
+        await item.setTags(icloudTags);
+        await item.saveTx();
+
+        Zotero.debug("Zotero tags updated from iCloud tags for item " + itemID + ".");
     },
 
     log(msg) {
@@ -133,12 +211,12 @@ ICloudAttacher = {
 
         // Add menu options to view menu for updating icloud tags
         let menuitemfromZotero = doc.createXULElement('menuitem');
-        menuitemfromZotero.id = 'update-Tags-From-Zotero';
+        menuitemfromZotero.id = 'read-all-tags-from-icloud';
         menuitemfromZotero.setAttribute('type', 'normal');
-        menuitemfromZotero.setAttribute('data-l10n-id', 'update-Tags-From-Zotero');
+        menuitemfromZotero.setAttribute('data-l10n-id', 'read-all-tags-from-icloud');
         // MozMenuItem#checked is available in Zotero 7
         menuitemfromZotero.addEventListener('command', () => {
-            ICloudAttacher.updateTagsFromZotero();
+            ICloudAttacher.readAllTagsFromICloud();
         });
         doc.getElementById('menu_viewPopup').appendChild(menuitemfromZotero);
         this.storeAddedElement(menuitemfromZotero);

@@ -21,6 +21,7 @@ async function startup({ id, version, rootURI }) {
 	Services.scriptloader.loadSubScript(rootURI + 'icloud-attacher.js');
 	ICloudAttacher.init({ id, version, rootURI });
 	ICloudAttacher.addToAllWindows();
+	ICloudAttacher.readAllTagsFromICloud();
 	await ICloudAttacher.main();
 }
 

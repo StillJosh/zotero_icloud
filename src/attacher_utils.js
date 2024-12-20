@@ -33,31 +33,24 @@ Zotero.icloudAttacher = new function() {
             });
     };
 
-    this.readTags = function(filename) {
-        var file = Components.classes["@mozilla.org/file/local;1"]
-            .createInstance(Components.interfaces.nsIFile);
-        file.initWithPath("/usr/bin/mdls");
-
-        var process = Components.classes["@mozilla.org/process/util;1"]
-            .createInstance(Components.interfaces.nsIProcess);
-        process.init(file);
-
-        var args = ['-raw', '-name', 'kMDItemUserTags', filename];
-        process.run(true, args, args.length);
-    }.bind(Zotero.icloudAttacher);
 
     this.writeTags = function(filename, tags) {
         const tag_dict = {
-            "unread": "Unread",
-            "⭐️": "Orange",
-            "⭐️⭐️": "Gelb",
-            "⭐️⭐️⭐️": "Lila",
+            "Unread": "Unread",
+            "Awesome": "Awesome",
+            "Good": "Good",
+            "Medium": "Medium",
+            "Bad or Irrelevant": "Bad or Irrelevant",
+            "Must Read": "Must Read",
+            "Should Read": "Should Read",
         }
-
         tags = tags.map(tag => tag_dict[tag]);
         const tagString = tags.map(tag => `<string>${tag}</string>`).join('');
         const plist = `<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><array>${tagString}</array></plist>`;
 
+        Zotero.debug('Updated Color')
+        Zotero.debug(tags);
+        Zotero.debug(tagString);
         var file = Components.classes["@mozilla.org/file/local;1"]
             .createInstance(Components.interfaces.nsIFile);
         file.initWithPath("/usr/bin/xattr");
@@ -69,4 +62,45 @@ Zotero.icloudAttacher = new function() {
         var args = ['-w', 'com.apple.metadata:_kMDItemUserTags', plist, filename];
         process.run(true, args, args.length);
     }.bind(Zotero.icloudAttacher);
+
+    this.readTags = function (filename) {
+
+        let tags = Zotero.Utilities.Internal.subprocess(
+            // The command to run
+            '/usr/bin/mdls',
+            [
+                '-name', 'kMDItemUserTags',
+                filename
+            ],
+        ).then(result => {
+                Zotero.debug("mdls output: " + result);
+
+                let match = result.match(/\(\s*([\s\S]*?)\)/);
+                if (!match || !match[1]) {
+                    Zotero.debug("No tags found");
+                    return [];
+                }
+
+                let tags = match[1]
+                    .split(',')
+                    .map(tag => tag.trim())
+                    .filter(tag => tag.length > 0 && tag !== ')') // filter out empty lines or stray characters
+                    .map(tag => {
+                        // Remove any surrounding quotes
+                        return tag.replace(/^"|"$/g, '');
+                    });
+
+                Zotero.debug("Parsed tags: " + JSON.stringify(tags));
+                return tags;
+            }
+        ).catch(error => {
+                Zotero.debug("Error reading tags: " + error);
+                return [];
+            }
+        );
+        Zotero.debug("Easdfags: " + tags);
+
+        return tags;
+    }
+
 }
