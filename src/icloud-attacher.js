@@ -156,44 +156,6 @@ ICloudAttacher = {
         Zotero.debug("Done applying tags to all items.");
     },
 
-    async updateZoteroTagsFromICloudForItem1178() {
-        Zotero.debug("Updating Zotero tags from iCloud tags for item 1178.");
-        const itemID = 1178;
-        let item = Zotero.Items.get(itemID);
-        if (!item) {
-            Zotero.debug("No item found with ID " + itemID);
-            return;
-        }
-
-        const iCloudPath = Zotero.Prefs.get('extensions.icloud-attacher.iCloudPath', true);
-
-        let attachments = item.getAttachments();
-        if (!attachments.length) {
-            Zotero.debug("No attachments found for item " + itemID);
-            return;
-        }
-
-        let attachment = Zotero.Items.get(attachments[0]);
-        if (!attachment || attachment.attachmentContentType !== 'application/pdf') {
-            Zotero.debug("No PDF attachment found for item " + itemID);
-            return;
-        }
-
-        let targetFile = ICloudAttacher.customPathJoin(
-            iCloudPath,
-            attachment.attachmentPath.replace(/^.*attachments:PaperLibrary\//, '')
-        );
-
-        Zotero.debug("Reading iCloud tags from: " + targetFile);
-        let icloudTags = await Zotero.icloudAttacher.readTags(targetFile);
-
-        Zotero.debug("iCloud tags retrieved: " + JSON.stringify(icloudTags));
-
-        await item.setTags(icloudTags);
-        await item.saveTx();
-
-        Zotero.debug("Zotero tags updated from iCloud tags for item " + itemID + ".");
-    },
 
     log(msg) {
         Zotero.debug("ICloud Attacher: " + msg);
