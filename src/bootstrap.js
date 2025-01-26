@@ -10,8 +10,7 @@ function install() {
 
 async function startup({ id, version, rootURI }) {
 	log("Starting 2.0");
-	//Sleep for 20 seconds
-	//await new Promise(r => setTimeout(r, 20000));
+
 	Zotero.PreferencePanes.register({
 		pluginID: 'icloud-attacher@example.com',
 		src: rootURI + 'preferences.xhtml',
