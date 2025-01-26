@@ -186,102 +186,89 @@ ICloudAttacher = {
     },
 
 
-        log(msg)
-        {
-            Zotero.debug("ICloud Attacher: " + msg);
+    log(msg) {
+        Zotero.debug("ICloud Attacher: " + msg);
+    },
+
+    /**
+     * This function adds a menu item to the view menu, which allows the user to update the tags of PDF attachments
+     * in iCloud according to the Zotero tags.
+     */
+    addToWindow(window) {
+        let doc = window.document;
+
+        // Use Fluent for localization
+        window.MozXULElement.insertFTLIfNeeded("icloud-attacher.ftl");
+
+        // Add menu options to view menu for updating Zotero tags
+        let menuitemfromZotero = doc.createXULElement('menuitem');
+        menuitemfromZotero.id = 'read-all-tags-from-icloud';
+        menuitemfromZotero.setAttribute('type', 'normal');
+        menuitemfromZotero.setAttribute('data-l10n-id', 'read-all-tags-from-icloud');
+        // MozMenuItem#checked is available in Zotero 7
+        menuitemfromZotero.addEventListener('command', () => {
+            ICloudAttacher.readAllTagsFromICloud();
+        });
+        doc.getElementById('menu_viewPopup').appendChild(menuitemfromZotero);
+        this.storeAddedElement(menuitemfromZotero);
+
+        /*
+        // Add menu options to view menu for updating icloud tags
+        let menuitemtoZotero = doc.createXULElement('menuitem');
+        menuitemtoZotero.id = 'write-all-tags-to-icloud';
+        menuitemtoZotero.setAttribute('type', 'normal');
+        menuitemtoZotero.setAttribute('data-l10n-id', 'write-all-tags-to-icloud');
+        // MozMenuItem#checked is available in Zotero 7
+        menuitemtoZotero.addEventListener('command', () => {
+            ICloudAttacher.writeAllTagsToICloud();
+        });
+        doc.getElementById('menu_viewPopup').appendChild(menuitemtoZotero);
+        this.storeAddedElement(menuitemtoZotero);
+        */
+    },
+
+    addToAllWindows() {
+        Zotero.debug("ADd to all window: ");
+
+        var windows = Zotero.getMainWindows();
+        for (let win of windows) {
+            if (!win.ZoteroPane) continue;
+            this.addToWindow(win);
         }
-    ,
+    },
 
-        /**
-         * This function adds a menu item to the view menu, which allows the user to update the tags of PDF attachments
-         * in iCloud according to the Zotero tags.
-         */
-        addToWindow(window)
-        {
-            let doc = window.document;
-
-            // Use Fluent for localization
-            window.MozXULElement.insertFTLIfNeeded("icloud-attacher.ftl");
-
-            // Add menu options to view menu for updating Zotero tags
-            let menuitemfromZotero = doc.createXULElement('menuitem');
-            menuitemfromZotero.id = 'read-all-tags-from-icloud';
-            menuitemfromZotero.setAttribute('type', 'normal');
-            menuitemfromZotero.setAttribute('data-l10n-id', 'read-all-tags-from-icloud');
-            // MozMenuItem#checked is available in Zotero 7
-            menuitemfromZotero.addEventListener('command', () => {
-                ICloudAttacher.readAllTagsFromICloud();
-            });
-            doc.getElementById('menu_viewPopup').appendChild(menuitemfromZotero);
-            this.storeAddedElement(menuitemfromZotero);
-
-            // Add menu options to view menu for updating icloud tags
-            let menuitemtoZotero = doc.createXULElement('menuitem');
-            menuitemtoZotero.id = 'write-all-tags-to-icloud';
-            menuitemtoZotero.setAttribute('type', 'normal');
-            menuitemtoZotero.setAttribute('data-l10n-id', 'write-all-tags-to-icloud');
-            // MozMenuItem#checked is available in Zotero 7
-            menuitemtoZotero.addEventListener('command', () => {
-                ICloudAttacher.writeAllTagsToICloud();
-            });
-            doc.getElementById('menu_viewPopup').appendChild(menuitemtoZotero);
-            this.storeAddedElement(menuitemtoZotero);
-
+    storeAddedElement(elem) {
+        if (!elem.id) {
+            throw new Error("Element must have an id");
         }
-    ,
+        this.addedElementIDs.push(elem.id);
+    },
 
-        addToAllWindows()
-        {
-            Zotero.debug("ADd to all window: ");
-
-            var windows = Zotero.getMainWindows();
-            for (let win of windows) {
-                if (!win.ZoteroPane) continue;
-                this.addToWindow(win);
-            }
+    removeFromWindow(window) {
+        var doc = window.document;
+        // Remove all elements added to DOM
+        for (let id of this.addedElementIDs) {
+            doc.getElementById(id)?.remove();
         }
-    ,
+        doc.querySelector('[href="icloud-attacher.ftl"]').remove();
+    },
 
-        storeAddedElement(elem)
-        {
-            if (!elem.id) {
-                throw new Error("Element must have an id");
-            }
-            this.addedElementIDs.push(elem.id);
+    removeFromAllWindows() {
+        var windows = Zotero.getMainWindows();
+        for (let win of windows) {
+            if (!win.ZoteroPane) continue;
+            this.removeFromWindow(win);
         }
-    ,
+    },
 
-        removeFromWindow(window)
-        {
-            var doc = window.document;
-            // Remove all elements added to DOM
-            for (let id of this.addedElementIDs) {
-                doc.getElementById(id)?.remove();
-            }
-            doc.querySelector('[href="icloud-attacher.ftl"]').remove();
-        }
-    ,
+    async main() {
+        // Global properties are included automatically in Zotero 7
+        var host = new URL('https://foo.com/path').host;
+        this.log(`Host is ${host}`);
 
-        removeFromAllWindows()
-        {
-            var windows = Zotero.getMainWindows();
-            for (let win of windows) {
-                if (!win.ZoteroPane) continue;
-                this.removeFromWindow(win);
-            }
-        }
-    ,
+        // Retrieve a global pref
+        this.log(`Intensity is ${Zotero.Prefs.get('extensions.make-it-red.intensity', true)}`);
+    }
 
-        async
-        main()
-        {
-            // Global properties are included automatically in Zotero 7
-            var host = new URL('https://foo.com/path').host;
-            this.log(`Host is ${host}`);
-
-            // Retrieve a global pref
-            this.log(`Intensity is ${Zotero.Prefs.get('extensions.make-it-red.intensity', true)}`);
-        }
-
-    };
+};
 
