@@ -62,42 +62,32 @@ Zotero.icloudAttacher = new function() {
         process.run(true, args, args.length);
     }.bind(Zotero.icloudAttacher);
 
-    this.readTags = function (filename) {
+    this.readTags = async function (filename) {
+        try {
+            let result = await Zotero.Utilities.Internal.subprocess(
+                '/usr/bin/mdls',
+                ['-name', 'kMDItemUserTags', filename]
+            );
 
-        let tags = Zotero.Utilities.Internal.subprocess(
-            // The command to run
-            '/usr/bin/mdls',
-            [
-                '-name', 'kMDItemUserTags',
-                filename
-            ],
-        ).then(result => {
-                let match = result.match(/\(\s*([\s\S]*?)\)/);
-                if (!match || !match[1]) {
-                    Zotero.debug("No tags found");
-                    return [];
-                }
-
-                let tags = match[1]
-                    .split(',')
-                    .map(tag => tag.trim())
-                    .filter(tag => tag.length > 0 && tag !== ')') // filter out empty lines or stray characters
-                    .map(tag => {
-                        // Remove any surrounding quotes
-                        return tag.replace(/^"|"$/g, '');
-                    });
-
-                Zotero.debug("Parsed tags: " + JSON.stringify(tags));
-                return tags;
-            }
-        ).catch(error => {
-                Zotero.debug("Error reading tags: " + error);
+            let match = result.match(/\(\s*([\s\S]*?)\)/);
+            if (!match || !match[1]) {
+                Zotero.debug("No tags found");
                 return [];
             }
-        );
-        Zotero.debug("Easdfags: " + tags);
 
-        return tags;
+            let tags = match[1]
+                .split(',')
+                .map(tag => tag.trim())
+                .filter(tag => tag.length > 0 && tag !== ')')
+                .map(tag => tag.replace(/^"|"$/g, ''));
+
+            Zotero.debug("Parsed tags: " + JSON.stringify(tags));
+            Zotero.debug("Read Tags: " + tags);
+            return tags;
+        } catch (error) {
+            Zotero.debug("Error reading tags: " + error);
+            return [];
+        }
     }
 
 }
