@@ -145,7 +145,7 @@ ICloudAttacher = {
                             parentItem.setTags(icloudTags);
                             parentItem.saveTx();
 
-                            Zotero.debug("Zotero tags updated from iCloud tags for item " + itemID + ".");
+                            Zotero.debug("Zotero tags updated from iCloud tags for item " + parentItem + ".");
 
                         });
                     }
