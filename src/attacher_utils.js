@@ -73,8 +73,6 @@ Zotero.icloudAttacher = new function() {
                 filename
             ],
         ).then(result => {
-                Zotero.debug("mdls output: " + result);
-
                 let match = result.match(/\(\s*([\s\S]*?)\)/);
                 if (!match || !match[1]) {
                     Zotero.debug("No tags found");
