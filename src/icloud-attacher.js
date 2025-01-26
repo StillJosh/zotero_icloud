@@ -156,6 +156,35 @@ ICloudAttacher = {
         Zotero.debug("Done applying tags to all items.");
     },
 
+    async writeAllTagsToICloud() {
+
+        Zotero.Items.getAll(1).then(items => {
+                for (let item of items) {
+                    if (item.itemType != 'attachment') {
+                        continue;
+                    }
+                    if (item.attachmentContentType != 'application/pdf') {
+                        continue;
+                    }
+                    let filePath = item.getFilePath();
+
+                    IOUtils.exists(filePath).then(exists => {
+                        if (!exists) {
+                            return;
+                        } else {
+                            let tags = item.getTags();
+                            Zotero.debug("Writing tags to iCloud: " + tags);
+                            Zotero.icloudAttacher.writeTags(filePath, tags);
+                        }
+                    });
+                }
+
+            }
+        );
+
+        Zotero.debug("Done writing tags to all items.");
+    },
+
 
         log(msg)
         {
