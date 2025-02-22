@@ -106,13 +106,16 @@ ICloudAttacher = {
                 for (let attID of attachments) {
                     let attachment = Zotero.Items.get(attID);
                     if (attachment && attachment.attachmentContentType === 'application/pdf') {
-                        // Construct the target file path (adjust as needed for your directory structure)
-                        let targetFile = ICloudAttacher.customPathJoin(
-                            iCloudPath,
-                            attachment.attachmentPath.replace(/^.*attachments:PaperLibrary\//, '')
-                        );
-                        Zotero.debug("Updating tags for iCloud file: " + targetFile);
-                        Zotero.icloudAttacher.writeTags(targetFile, tags);
+                      // Construct the target file path (adjust as needed for your directory structure)
+                      let secondPath = attachment.attachmentPath.replace(/^.*attachments:PaperLibrary\//,"");
+
+                      let targetFile = secondPath.startsWith(iCloudPath)
+                        ? secondPath
+                        : ICloudAttacher.customPathJoin(iCloudPath, secondPath);
+                      Zotero.debug(
+                        "Updating tags for iCloud file: " + targetFile
+                      );
+                      Zotero.icloudAttacher.writeTags(targetFile, tags);
                     }
                 }
             }
