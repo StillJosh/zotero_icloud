@@ -1,3 +1,5 @@
+// Code for starting the extension /Applications/Zotero.app/Contents/MacOS/zotero -purgecaches -ZoteroDebugText - jsconsole
+
 var ICloudAttacher;
 
 function log(msg) {
